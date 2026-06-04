@@ -1,0 +1,42 @@
+name: Daily AI Updates Summary
+
+on:
+  schedule:
+    - cron: '30 14 * * 1-5'  # Weekdays at ~8 PM IST (14:30 UTC)
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate Summary
+        env:
+          GROK_API_KEY: ${{ secrets.GROK_API_KEY }}  # Recommended (xAI)
+          # Or use OPENAI_API_KEY / ANTHROPIC_API_KEY
+        run: python generate_summary.py
+
+      - name: Commit & Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add summaries/ pdfs/ || true
+          git commit -m "Daily AI Update: $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git push
+
+      - name: Deploy GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
