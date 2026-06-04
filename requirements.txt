@@ -3,5 +3,4 @@ requests
 beautifulsoup4
 markdown2
 weasyprint
-grokapi  # or openai / anthropic
-python-dateutil
+openai>=1.60.0
