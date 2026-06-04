@@ -1,54 +1,77 @@
-name: Daily AI Updates Summary
+import os
+import feedparser
+from datetime import datetime
+import markdown2
+from openai import OpenAI
+import subprocess
 
-on:
-  schedule:
-    - cron: '30 14 * * 1-5'
-  workflow_dispatch:
+# === COMPANIES & RSS ===
+COMPANIES = {
+    "OpenAI": "https://openai.com/news/rss.xml",
+    "Anthropic": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",
+    "Google DeepMind": "https://deepmind.google/blog/rss.xml",
+    "Microsoft AI": "https://news.microsoft.com/source/topics/ai/feed/",
+    "xAI Grok": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_xainews.xml",
+    "DeepSeek": "https://huggingface.co/blog/feed.xml",
+    "Alibaba Qwen": "https://qwenlm.github.io/blog/feed.xml",
+    "Meta Llama": "https://ai.meta.com/blog/feed/",
+}
 
-jobs:
-  generate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v6
+client = OpenAI(
+    api_key=os.getenv("XAI_API_KEY"),
+    base_url="https://api.x.ai/v1",
+)
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
+def get_latest_news(company, url):
+    try:
+        feed = feedparser.parse(url)
+        if not feed.entries:
+            return f"**{company}**: No major updates today."
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+        entry = feed.entries[0]
+        prompt = f"""
+        Write a crisp 1-2 line summary for a daily AI newsletter.
+        Company: {company}
+        Title: {entry.title}
+        Description: {getattr(entry, 'description', '')[:700]}
+        Link: {entry.link}
+        """
 
-      - name: Install md-to-pdf
-        run: npm install -g md-to-pdf
+        response = client.chat.completions.create(
+            model="grok-4",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=250,
+            temperature=0.6
+        )
+        summary = response.choices[0].message.content.strip()
+        return f"**{company}**: {summary}\nSource: [{entry.title}]({entry.link})"
+    except Exception as e:
+        print(f"⚠️ Error with {company}: {e}")
+        return f"**{company}**: No major updates today."
 
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
+# Generate content
+today = datetime.now().strftime("%Y-%m-%d")
+md_content = f"# 🚀 Daily AI Updates\n**Date:** {today}\n\n"
 
-      - name: Generate Summary
-        env:
-          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
-        run: python generate_summary.py
+for company, url in COMPANIES.items():
+    summary = get_latest_news(company, url)
+    md_content += summary + "\n\n"
 
-      - name: Commit & Push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          git add summaries/ pdfs/ || true
-          
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Daily AI Update: $(date +'%Y-%m-%d')"
-            git push https://${{ secrets.PAT_TOKEN }}@github.com/spallikonda/daily-ai-updates.git HEAD:main
-          fi
+md_content += "\n---\nAuto-generated at 8 PM IST • [GitHub Repo](https://github.com/spallikonda/daily-ai-updates)"
 
-      - name: Deploy GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
+# Save everything in summaries/ folder
+os.makedirs("summaries", exist_ok=True)
+
+md_path = f"summaries/{today}.md"
+pdf_path = f"summaries/{today}.pdf"
+
+with open(md_path, "w", encoding="utf-8") as f:
+    f.write(md_content)
+
+# Convert to PDF
+print("Converting to PDF...")
+try:
+    subprocess.run(["md-to-pdf", md_path], check=True)
+    print(f"✅ Generated: {md_path} and {pdf_path}")
+except subprocess.CalledProcessError as e:
+    print(f"PDF conversion failed: {e}")
