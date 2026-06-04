@@ -2,19 +2,18 @@ name: Daily AI Updates Summary
 
 on:
   schedule:
-    - cron: '30 14 * * 1-5'  # Weekdays at ~8 PM IST (14:30 UTC)
-  workflow_dispatch:  # Manual trigger
+    - cron: '30 14 * * 1-5'  # Weekdays at ~8 PM IST
+  workflow_dispatch:
 
 jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout repo
+        uses: actions/checkout@v6   # ← Updated to v6 (Node 24)
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6   # ← Updated to v6 (Node 24)
         with:
           python-version: '3.12'
 
@@ -23,8 +22,7 @@ jobs:
 
       - name: Generate Summary
         env:
-          GROK_API_KEY: ${{ secrets.GROK_API_KEY }}  # Recommended (xAI)
-          # Or use OPENAI_API_KEY / ANTHROPIC_API_KEY
+          GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
         run: python generate_summary.py
 
       - name: Commit & Push
@@ -35,8 +33,8 @@ jobs:
           git commit -m "Daily AI Update: $(date +'%Y-%m-%d')" || echo "No changes to commit"
           git push
 
-      - name: Deploy GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4   # Latest stable (v4.1.0+)
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./
