@@ -1,0 +1,7 @@
+feedparser
+requests
+beautifulsoup4
+markdown2
+weasyprint
+grokapi  # or openai / anthropic
+python-dateutil
