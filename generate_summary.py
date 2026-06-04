@@ -47,7 +47,7 @@ def get_latest_news(company, url):
         return f"**{company}**: {summary}\nSource: [{entry.title}]({entry.link})"
     except Exception as e:
         print(f"⚠️ Error with {company}: {e}")
-        return f"**{company}**: No major updates today. (API issue or no feed)"
+        return f"**{company}**: No major updates today."
 
 # Generate content
 today = datetime.now().strftime("%Y-%m-%d")
@@ -57,32 +57,21 @@ for company, url in COMPANIES.items():
     summary = get_latest_news(company, url)
     md_content += summary + "\n\n"
 
-md_content += "\n---\nAuto-generated at 8 PM IST • [GitHub Repo](https://github.com/YOUR-USERNAME/daily-ai-updates)"
+md_content += "\n---\nAuto-generated at 8 PM IST • [GitHub Repo](https://github.com/spallikonda/daily-ai-updates)"
 
-# Save Markdown
+# Save everything in summaries/ folder
 os.makedirs("summaries", exist_ok=True)
-os.makedirs("pdfs", exist_ok=True)
 
 md_path = f"summaries/{today}.md"
-pdf_path = f"pdfs/{today}.pdf"
+pdf_path = f"summaries/{today}.pdf"
 
 with open(md_path, "w", encoding="utf-8") as f:
     f.write(md_content)
 
-# === PDF Conversion (Fixed) ===
-print("Converting Markdown to PDF...")
+# Convert to PDF
+print("Converting to PDF...")
 try:
-    # md-to-pdf automatically creates .pdf in same folder
     subprocess.run(["md-to-pdf", md_path], check=True)
-    
-    # Move the generated PDF to pdfs/ folder
-    default_pdf = f"summaries/{today}.pdf"
-    if os.path.exists(default_pdf):
-        os.rename(default_pdf, pdf_path)
-    else:
-        print("Warning: PDF not generated in expected location")
+    print(f"✅ Generated: {md_path} and {pdf_path}")
 except subprocess.CalledProcessError as e:
     print(f"PDF conversion failed: {e}")
-    # Fallback: just keep the markdown
-
-print(f"✅ Summary generated for {today}")
