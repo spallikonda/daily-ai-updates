@@ -2,7 +2,6 @@ import os
 import feedparser
 from datetime import datetime
 import markdown2
-from weasyprint import HTML
 from openai import OpenAI
 
 # === COMPANIES & RSS ===
@@ -59,15 +58,18 @@ for company, url in COMPANIES.items():
 
 md_content += "\n---\nAuto-generated at 8 PM IST • [GitHub Repo](https://github.com/YOUR-USERNAME/daily-ai-updates)"
 
-# Save files
+# Save Markdown
 os.makedirs("summaries", exist_ok=True)
 os.makedirs("pdfs", exist_ok=True)
 
-with open(f"summaries/{today}.md", "w", encoding="utf-8") as f:
+md_path = f"summaries/{today}.md"
+pdf_path = f"pdfs/{today}.pdf"
+
+with open(md_path, "w", encoding="utf-8") as f:
     f.write(md_content)
 
-# PDF Generation
-html_content = markdown2.markdown(md_content, extras=["fenced-code-blocks"])
-HTML(string=html_content).write_pdf(f"pdfs/{today}.pdf")
+# Convert Markdown to PDF using md-to-pdf
+import subprocess
+subprocess.run(["md-to-pdf", md_path, "--output", pdf_path], check=True)
 
-print(f"✅ Successfully generated summary for {today}")
+print(f"✅ Successfully generated summary + PDF for {today}")
