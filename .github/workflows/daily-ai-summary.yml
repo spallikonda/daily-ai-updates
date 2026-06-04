@@ -2,7 +2,7 @@ name: Daily AI Updates Summary
 
 on:
   schedule:
-    - cron: '30 14 * * 1-5'  # Weekdays at ~8 PM IST
+    - cron: '30 14 * * 1-5'
   workflow_dispatch:
 
 jobs:
@@ -10,19 +10,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6   # ← Updated to v6 (Node 24)
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v6   # ← Updated to v6 (Node 24)
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Install WeasyPrint system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
+            libgdk-pixbuf2.0-0 libffi-dev shared-mime-info
+
+      - name: Install Python dependencies
         run: pip install -r requirements.txt
 
       - name: Generate Summary
         env:
-          GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: python generate_summary.py
 
       - name: Commit & Push
@@ -30,11 +37,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add summaries/ pdfs/ || true
-          git commit -m "Daily AI Update: $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git commit -m "Daily AI Update: $(date +'%Y-%m-%d')" || echo "No changes"
           git push
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4   # Latest stable (v4.1.0+)
+      - name: Deploy GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./
