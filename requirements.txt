@@ -1,0 +1,5 @@
+feedparser
+requests
+beautifulsoup4
+markdown2
+openai>=1.60.0
