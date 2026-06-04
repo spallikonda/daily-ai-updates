@@ -37,9 +37,15 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
           git add summaries/ pdfs/ || true
-          git commit -m "Daily AI Update: $(date +'%Y-%m-%d')" || echo "No changes"
-          git push
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Daily AI Update: $(date +'%Y-%m-%d')"
+            git push https://${{ secrets.PAT_TOKEN }}@github.com/spallikonda/daily-ai-updates.git HEAD:main
+          fi
 
       - name: Deploy GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
