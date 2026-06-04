@@ -2,5 +2,4 @@ feedparser
 requests
 beautifulsoup4
 markdown2
-weasyprint
 openai>=1.60.0
